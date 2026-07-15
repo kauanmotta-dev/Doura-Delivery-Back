@@ -19,10 +19,15 @@ assíncrona de pagamento.
 
 Implementado e funcionando no código:
 
+* **Validação de assinatura de webhook (HMAC-SHA256)** — `WebhookValidator` recalcula a
+  assinatura do payload e compara com a recebida usando `MessageDigest.isEqual`, ou seja,
+  **comparação em tempo constante**, para não vazar informação por timing attack. O segredo
+  é externalizado por configuração, não fica no código.
+* **Idempotência de webhook de pagamento** — o mesmo evento chegando duas vezes não credita
+  duas vezes.
 * **Controle de concorrência com optimistic locking** — `@Version` em `Order` e `Payment`,
   as duas entidades onde escrita concorrente corromperia estado.
-* **Idempotência de webhook de pagamento** — o mesmo evento chegando duas vezes não credita
-  duas vezes (`PaymentController`, `PaymentRepository`).
+* **Pagamento via PIX** com confirmação assíncrona por webhook.
 * **Máquinas de estado** de pedido e pagamento, com transições validadas no domínio.
 * **Autenticação e autorização** com Spring Security + JWT.
 * **Tracking de entrega em tempo real** via WebSocket.
@@ -64,10 +69,14 @@ no domínio, não no controller.
 
 ## 💳 Segurança financeira
 
-O núcleo financeiro foi o ponto do estudo. Mecanismos **implementados**:
+O núcleo financeiro foi o ponto do estudo. Um webhook de pagamento é um endpoint público
+que mexe em dinheiro — é onde um marketplace mal feito é fraudado. Mecanismos
+**implementados**:
 
-* idempotência de webhook (evento duplicado não gera crédito duplicado)
-* optimistic locking em `Order` e `Payment`
+* **autenticidade**: assinatura HMAC-SHA256 verificada em tempo constante — sem a chave
+  secreta, ninguém forja uma confirmação de pagamento
+* **idempotência**: evento duplicado não gera crédito duplicado
+* **concorrência**: optimistic locking em `Order` e `Payment`
 * validação de transição de estado de pagamento
 * sincronização entre os estados de `Order` e `Payment`
 
@@ -79,7 +88,7 @@ O núcleo financeiro foi o ponto do estudo. Mecanismos **implementados**:
 |---|---|
 | Linguagem | Java 21 |
 | Framework | Spring Boot 3.3.6 |
-| Segurança | Spring Security, JWT (jjwt 0.11.5) |
+| Segurança | Spring Security, JWT (jjwt 0.11.5), HMAC-SHA256 (javax.crypto) |
 | Persistência | Spring Data JPA / Hibernate |
 | Banco | MySQL |
 | Tempo real | Spring WebSocket |
