@@ -1,158 +1,111 @@
 # 🍔 DeliveryCore API — Backend
 
-DeliveryCore API é uma API backend desenvolvida em **Java com Spring Boot** que simula o funcionamento de uma plataforma de delivery no estilo marketplace, semelhante a serviços como iFood ou Uber Eats.
+API backend em **Java 21 + Spring Boot 3.3.6** que simula uma plataforma de delivery no
+estilo marketplace (iFood, Uber Eats).
 
-O objetivo do projeto é construir um backend robusto com foco em:
+Projeto de **estudo de engenharia backend**, focado nos problemas que aparecem em sistemas
+transacionais com dinheiro envolvido: consistência de estados, concorrência e integração
+assíncrona de pagamento.
 
-* arquitetura bem definida
-* consistência transacional
-* segurança de domínio
-* integridade de dados
-* modelagem correta de estados de pedido e pagamento
-
-O projeto é desenvolvido como **estudo avançado de engenharia backend**, simulando desafios reais encontrados em plataformas de delivery.
-
----
-
-# 🧠 Arquitetura e Conceitos
-
-O backend foi projetado utilizando princípios de engenharia de software aplicados a sistemas transacionais:
-
-* Clean Architecture
-* Domain Modeling
-* Aggregate Roots
-* State Machines
-* Consistência transacional
-* Idempotência
-* Controle de concorrência com Optimistic Locking
-* Integração via Webhooks
-* APIs REST
+> **Status:** estudo concluído, não mantido ativamente. Serviu de base para um marketplace
+> mais completo que desenvolvo hoje (Spring Boot 4, PostgreSQL, Flyway, Testcontainers).
+> **Este repositório não tem testes automatizados** — foi aqui que exercitei modelagem de
+> domínio, não disciplina de teste. Se você veio avaliar meu trabalho, a seção abaixo diz
+> exatamente o que esperar encontrar.
 
 ---
 
-# 🚚 Modelo de Negócio
+## 🧠 O que este projeto demonstra
 
-O sistema segue o modelo **Marketplace de Delivery**.
+Implementado e funcionando no código:
 
-Fluxo principal:
+* **Controle de concorrência com optimistic locking** — `@Version` em `Order` e `Payment`,
+  as duas entidades onde escrita concorrente corromperia estado.
+* **Idempotência de webhook de pagamento** — o mesmo evento chegando duas vezes não credita
+  duas vezes (`PaymentController`, `PaymentRepository`).
+* **Máquinas de estado** de pedido e pagamento, com transições validadas no domínio.
+* **Autenticação e autorização** com Spring Security + JWT.
+* **Tracking de entrega em tempo real** via WebSocket.
+* **Documentação de API** gerada com springdoc-openapi (Swagger UI).
 
+Não implementado: testes automatizados, catálogo de restaurantes, itens de pedido, cálculo
+de taxa de entrega, busca por localização, notificações e observabilidade. O projeto parou
+antes disso — a evolução foi para o marketplace novo.
+
+---
+
+## 🚚 Modelo de negócio
+
+Marketplace de delivery. Fluxo principal:
+
+```
 Cliente cria pedido
-↓
-Restaurante recebe e aceita pedido
-↓
-Restaurante prepara pedido
-↓
-Entregador aceita entrega
-↓
-Pedido é entregue ao cliente
+   ↓
+Restaurante recebe e aceita
+   ↓
+Restaurante prepara
+   ↓
+Entregador aceita a entrega
+   ↓
+Pedido é entregue
+```
 
 ---
 
-# 🏗 Estrutura de Domínio
+## 🏗 Domínio
 
-Principais entidades do sistema:
+Entidades principais: `User`, `Customer`, `Deliveryman`, `Restaurant`, `Order`, `Payment`,
+`Review`.
 
-* User
-* Customer
-* Deliveryman
-* Restaurant
-* Order
-* Payment
-* Review
-
-O sistema também utiliza **máquinas de estado** para garantir consistência nos fluxos de pedido e pagamento.
+Pedido e pagamento são governados por máquinas de estado — transição inválida é rejeitada
+no domínio, não no controller.
 
 ---
 
-# 💳 Segurança Financeira
+## 💳 Segurança financeira
 
-O núcleo financeiro da aplicação foi projetado para evitar inconsistências comuns em sistemas de pagamento.
+O núcleo financeiro foi o ponto do estudo. Mecanismos **implementados**:
 
-Principais mecanismos implementados ou planejados:
-
-* idempotência de webhook
-* proteção contra replay attack
-* controle de concorrência com optimistic locking
-* validação de estados de pagamento
-* sincronização entre estados de Order e Payment
+* idempotência de webhook (evento duplicado não gera crédito duplicado)
+* optimistic locking em `Order` e `Payment`
+* validação de transição de estado de pagamento
+* sincronização entre os estados de `Order` e `Payment`
 
 ---
 
-# 🧰 Tecnologias Utilizadas
+## 🧰 Stack
 
-## Backend
+| Camada | Tecnologia |
+|---|---|
+| Linguagem | Java 21 |
+| Framework | Spring Boot 3.3.6 |
+| Segurança | Spring Security, JWT (jjwt 0.11.5) |
+| Persistência | Spring Data JPA / Hibernate |
+| Banco | MySQL |
+| Tempo real | Spring WebSocket |
+| Documentação | springdoc-openapi 2.6.0 (Swagger UI) |
+| Build | Maven |
+| Utilitários | Lombok |
 
-* Java
-* Spring Boot
-* Spring Security
-* Spring Data JPA
-* Hibernate
-
-## Banco de Dados
-
-* PostgreSQL
-* MySQL
-* MariaDB
-* MongoDB
-* Redis
-
-## Arquitetura
-
-* REST APIs
-* Webhooks
-* JWT
-* Clean Architecture
-* Domain Modeling
-* State Machines
-* Transaction Management
-* Optimistic Locking
-* Idempotency
-
-## DevOps
-
-* Git
-* GitHub
-* Docker
-* Docker Compose
-
-## Ferramentas
-
-* Maven
-* Postman
-* Swagger / OpenAPI
+Conceitos aplicados: REST, Webhooks, Domain Modeling, State Machines, Transaction
+Management, Optimistic Locking, Idempotência.
 
 ---
 
-# 🚀 Objetivo do Projeto
+## ▶️ Como rodar
 
-Este projeto tem como objetivo simular a construção de um backend real de marketplace de delivery, abordando desafios como:
+Requisitos: JDK 21, Maven e uma instância MySQL.
 
-* consistência de pedidos
-* pagamentos assíncronos
-* concorrência
-* escalabilidade de domínio
-* segurança de API
+```bash
+# configure a conexão em src/main/resources/application.yaml
+./mvnw spring-boot:run
+```
 
-Ele também serve como **projeto de portfólio para engenharia backend em Java**.
-
----
-
-# 🔮 Próximas Evoluções
-
-O projeto continuará evoluindo com a adição de componentes essenciais de um marketplace real:
-
-* catálogo de restaurantes
-* menus e produtos
-* itens de pedido
-* cálculo de taxa de entrega
-* busca de restaurantes por localização
-* sistema de notificações
-* observabilidade (Spring Actuator / Prometheus)
-* testes automatizados
+Swagger UI: `http://localhost:8080/swagger-ui.html`
 
 ---
 
-# 👨‍💻 Autor
+## 👨‍💻 Autor
 
-Kauan Motta
-Backend Java Developer
+**Kauan Motta** — Desenvolvedor Backend Java
+[LinkedIn](https://www.linkedin.com/in/kauanmotta-dev) · [GitHub](https://github.com/kauanmotta-dev)
